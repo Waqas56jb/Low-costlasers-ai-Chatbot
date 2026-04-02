@@ -13,26 +13,37 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 const OpenAI = require('openai');
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Vercel serverless FS is read-only except /tmp — persist JSON there when deployed
+const DATA_DIR = process.env.VERCEL ? '/tmp' : __dirname;
+
 // ─── Lead storage (file-based, replace with DB in production) ────────────────
-const LEADS_FILE = path.join(__dirname, 'leads.json');
+const LEADS_FILE = path.join(DATA_DIR, 'leads.json');
 function saveLead(lead) {
-    let leads = [];
-    if (fs.existsSync(LEADS_FILE)) {
-        try { leads = JSON.parse(fs.readFileSync(LEADS_FILE, 'utf8')); } catch { }
+    try {
+        let leads = [];
+        if (fs.existsSync(LEADS_FILE)) {
+            try { leads = JSON.parse(fs.readFileSync(LEADS_FILE, 'utf8')); } catch { }
+        }
+        leads.push({ ...lead, timestamp: new Date().toISOString() });
+        fs.writeFileSync(LEADS_FILE, JSON.stringify(leads, null, 2));
+    } catch (e) {
+        console.error('saveLead failed:', e);
     }
-    leads.push({ ...lead, timestamp: new Date().toISOString() });
-    fs.writeFileSync(LEADS_FILE, JSON.stringify(leads, null, 2));
 }
 
 // ─── Analytics storage ───────────────────────────────────────────────────────
-const ANALYTICS_FILE = path.join(__dirname, 'analytics.json');
+const ANALYTICS_FILE = path.join(DATA_DIR, 'analytics.json');
 function logConversation(data) {
-    let analytics = [];
-    if (fs.existsSync(ANALYTICS_FILE)) {
-        try { analytics = JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8')); } catch { }
+    try {
+        let analytics = [];
+        if (fs.existsSync(ANALYTICS_FILE)) {
+            try { analytics = JSON.parse(fs.readFileSync(ANALYTICS_FILE, 'utf8')); } catch { }
+        }
+        analytics.push({ ...data, timestamp: new Date().toISOString() });
+        fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
+    } catch (e) {
+        console.error('logConversation failed:', e);
     }
-    analytics.push({ ...data, timestamp: new Date().toISOString() });
-    fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(analytics, null, 2));
 }
 
 // ─── Master System Prompt ────────────────────────────────────────────────────
@@ -244,6 +255,11 @@ app.post('/api/chat', async (req, res) => {
         return res.status(400).json({ error: 'Messages array is required' });
     }
 
+    if (!process.env.OPENAI_API_KEY || !String(process.env.OPENAI_API_KEY).trim()) {
+        console.error('OPENAI_API_KEY is missing — set it in Vercel Project → Settings → Environment Variables');
+        return res.status(503).json({ error: 'Chat service is not configured.' });
+    }
+
     try {
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o',
@@ -267,8 +283,9 @@ app.post('/api/chat', async (req, res) => {
 
         res.json({ reply, usage: completion.usage });
     } catch (error) {
-        console.error('OpenAI error:', error);
-        res.status(500).json({ error: 'AI service error. Please try again.' });
+        console.error('OpenAI error:', error?.message || error, error?.status, error?.code);
+        const status = error?.status === 401 || error?.status === 403 ? 503 : 500;
+        res.status(status).json({ error: 'AI service error. Please try again.' });
     }
 });
 
@@ -337,8 +354,12 @@ app.get('/api/health', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`
+
+module.exports = app;
+
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`
   ╔══════════════════════════════════════════════╗
   ║   LowCostLasers AI Chatbot Server            ║
   ║   Running on http://localhost:${PORT}           ║
@@ -346,4 +367,5 @@ app.listen(PORT, () => {
   ║   Status: ONLINE ✓                           ║
   ╚══════════════════════════════════════════════╝
   `);
-});
+    });
+}

@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const API_BASE =
-  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:3000'
-    : '';
+const API_BASE = 'https://low-costlasers-ai-chatbot.vercel.app';
 
 const LANG_GREETINGS = {
   en: "Hello! I'm ARIA, your LowCostLasers AI consultant. How can I help you today?",

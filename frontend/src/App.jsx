@@ -457,7 +457,7 @@ export default function App() {
                 ☰
               </button>
               <div className="topbar-title">
-                <span>ARIA</span> — Aesthetic Resource & Investment Assistant
+                <span>LowCostLasers</span> — your trusted discount program.
               </div>
             </div>
             <div className="topbar-actions">

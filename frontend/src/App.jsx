@@ -45,7 +45,9 @@ function formatBotMessage(text) {
 function WelcomeScreen({ onChip }) {
   return (
     <div className="welcome-screen" id="welcome-screen">
-      <div className="welcome-avatar">🔬</div>
+      <div className="welcome-avatar">
+        <img src="/logo.png" alt="LowCostLasers Logo" style={{ width: '90px', height: '90px', objectFit: 'contain', borderRadius: '20px' }} />
+      </div>
       <h1>Hi, I&apos;m ARIA</h1>
       <p>
         Your dedicated AI consultant for LowCostLasers.com. I can help you find the perfect pre-owned
@@ -319,7 +321,9 @@ export default function App() {
         <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} id="sidebar">
           <div className="sidebar-header">
             <div className="logo-wrap">
-              <div className="logo-icon">🔬</div>
+              <div className="logo-icon">
+                <img src="/logo.png" alt="LowCostLasers" style={{ width: '44px', height: '44px', objectFit: 'contain', borderRadius: '10px' }} />
+              </div>
               <div className="logo-text">
                 <h2>LOWCOSTLASERS</h2>
                 <span>AI Sales Assistant</span>
@@ -484,10 +488,13 @@ export default function App() {
           <div className="messages-scroll" id="messages" ref={messagesRef}>
             {showWelcome && messages.length === 0 && <WelcomeScreen onChip={sendQuick} />}
             {messages.map((m) => {
-              const avatarIcon = m.role === 'bot' ? '🔬' : '👤';
               return (
                 <div key={m.id} className={`msg ${m.role}`}>
-                  <div className="msg-avatar">{avatarIcon}</div>
+                  <div className="msg-avatar">
+                    {m.role === 'bot' ? (
+                      <img src="/logo.png" alt="ARIA" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px', background: '#0a1628' }} />
+                    ) : '👤'}
+                  </div>
                   <div className="msg-content">
                     {m.role === 'bot' ? (
                       <div
@@ -504,7 +511,9 @@ export default function App() {
             })}
             {typingId && (
               <div className="msg bot" id={typingId}>
-                <div className="msg-avatar">🔬</div>
+                <div className="msg-avatar">
+                  <img src="/logo.png" alt="ARIA" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px', background: '#0a1628' }} />
+                </div>
                 <div className="msg-content">
                   <div className="typing-indicator">
                     <div className="typing-dot" />

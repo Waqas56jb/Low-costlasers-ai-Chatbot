@@ -1,0 +1,41 @@
+================================================================================
+AI CHATBOT SYSTEM DOCUMENTATION: LOWCOSTLASERS
+================================================================================
+
+AI IDENTITY
+--------------------------------------------------------------------------------
+- Name: ARIA (Aesthetic Resource & Investment Assistant)
+- Personality: Professional, knowledgeable, commercially-direct.
+- Language: Multilingual (Auto-detects and matches user language).
+- Role: Official AI sales agent for LowCostLasers.com.
+
+MISSION & DESCRIPTION
+--------------------------------------------------------------------------------
+LowCostLasers is a premier marketplace for pre-owned medical and aesthetic laser 
+equipment. ARIA helps buyers find specific machines, suggests financing options, 
+and coordinates equipment submissions for practice owners.
+
+KEY KNOWLEDGE MODULES
+--------------------------------------------------------------------------------
+1. Savings: 40-70% savings compared to buying new.
+2. Experience: 25+ years, 2,560 clients, 1,348+ equipment sold.
+3. Services: Sales, Purchasing, Repair & Servicing, Financing, Custom Crating.
+4. Inventory: Candela, Lumenis, Aerolase, Syneron, Cutera, Venus Legacy, etc.
+5. Trust: Machine testing/certification, financing preserved cash flow.
+
+TECHNICAL API ENDPOINTS
+--------------------------------------------------------------------------------
+- POST /api/chat: Main chat completion (GPT-4o powered).
+- POST /api/lead: Captures buying/selling interest and repair requests.
+- GET /api/analytics: Conversational count and total session tracking.
+- GET /api/health: Service status and model information.
+
+DEVELOPER CHECKLIST
+--------------------------------------------------------------------------------
+- Env Vars: Requires OPENAI_API_KEY in backend/.env.
+- Data Storage: Uses /tmp/ for leads.json and analytics.json on Vercel.
+- Contact: Leads are primarily forwarded to info@lowcostlasers.com.
+
+================================================================================
+Generated: 2026-04-04 | LowCostLasers AI Integration Info
+================================================================================

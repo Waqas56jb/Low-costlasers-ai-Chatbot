@@ -1,6 +1,34 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const API_BASE = 'https://low-costlasers-ai-chatbot.vercel.app';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+const apiUrl = (path) => `${API_BASE}${path}`;
+
+const SS_MESSAGES = 'lcl_v1_messages';
+const SS_WELCOME = 'lcl_v1_welcome';
+const SS_SESSION = 'lcl_v1_session';
+
+function loadInitialChat() {
+  if (typeof sessionStorage === 'undefined') {
+    return { messages: [], history: [], welcome: true, sessionId: null };
+  }
+  try {
+    const raw = sessionStorage.getItem(SS_MESSAGES);
+    const messages = raw ? JSON.parse(raw) : [];
+    const history = messages.map((m) => ({
+      role: m.role === 'bot' ? 'assistant' : 'user',
+      content: m.content,
+    }));
+    let welcome = true;
+    const w = sessionStorage.getItem(SS_WELCOME);
+    if (w === '0') welcome = false;
+    else if (w === '1') welcome = true;
+    else welcome = messages.length === 0;
+    const sessionId = sessionStorage.getItem(SS_SESSION);
+    return { messages, history, welcome, sessionId };
+  } catch {
+    return { messages: [], history: [], welcome: true, sessionId: null };
+  }
+}
 
 const LANG_GREETINGS = {
   en: "Hello! I'm ARIA, your LowCostLasers AI consultant. How can I help you today?",
@@ -38,11 +66,11 @@ function formatBotMessage(text) {
     .replace(/---/g, '<hr/>')
     .replace(
       /\[(.*?)\]\((.*?)\)/g,
-      '<a href="$2" target="_blank" rel="noopener">$1 ↗</a>'
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1 ↗</a>'
     );
 }
 
-function WelcomeScreen({ onChip }) {
+function WelcomeScreen({ onChip, hasHistory, onContinue }) {
   return (
     <div className="welcome-screen" id="welcome-screen">
       <div className="welcome-avatar">
@@ -54,6 +82,11 @@ function WelcomeScreen({ onChip }) {
         aesthetic or medical laser equipment, get financing, sell your equipment, or schedule a repair —
         in any language.
       </p>
+      {hasHistory && (
+        <button type="button" className="continue-btn" onClick={onContinue}>
+          💬 Continue Conversation →
+        </button>
+      )}
       <div className="chips">
         <div className="chip" onClick={() => onChip('What laser equipment do you currently have in stock?')}>
           🔍 Browse Inventory
@@ -79,10 +112,15 @@ function WelcomeScreen({ onChip }) {
 }
 
 export default function App() {
-  const sessionIdRef = useRef(`sess_${Math.random().toString(36).substr(2, 9)}`);
-  const conversationHistoryRef = useRef([]);
-  const [messages, setMessages] = useState([]);
-  const [showWelcome, setShowWelcome] = useState(true);
+  const init = loadInitialChat();
+  const sessionIdRef = useRef(
+    init.sessionId && String(init.sessionId).length > 4
+      ? init.sessionId
+      : `sess_${Math.random().toString(36).substr(2, 9)}`
+  );
+  const conversationHistoryRef = useRef(init.history);
+  const [messages, setMessages] = useState(init.messages);
+  const [showWelcome, setShowWelcome] = useState(init.welcome);
   const [isTyping, setIsTyping] = useState(false);
   const [typingId, setTypingId] = useState(null);
   const [currentLanguage, setCurrentLanguage] = useState('auto');
@@ -99,15 +137,49 @@ export default function App() {
 
   const messagesRef = useRef(null);
   const inputRef = useRef(null);
+  const stickToBottomRef = useRef(true);
 
   const scrollToBottom = useCallback(() => {
     const el = messagesRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
+  const handleMessagesScroll = useCallback(() => {
+    const el = messagesRef.current;
+    if (!el) return;
+    const threshold = 120;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    stickToBottomRef.current = dist < threshold;
+  }, []);
+
   useEffect(() => {
+    try {
+      sessionStorage.setItem(SS_SESSION, sessionIdRef.current);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SS_MESSAGES, JSON.stringify(messages));
+    } catch {
+      /* ignore */
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SS_WELCOME, showWelcome ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+  }, [showWelcome]);
+
+  useEffect(() => {
+    if (!stickToBottomRef.current) return;
     scrollToBottom();
-  }, [messages, typingId, showWelcome, scrollToBottom]);
+  }, [messages, typingId, scrollToBottom]);
 
   const showToast = useCallback((msg, type = 'success') => {
     const id = `toast_${Date.now()}`;
@@ -149,10 +221,10 @@ export default function App() {
     return () => document.removeEventListener('click', onDocClick);
   }, [sidebarOpen]);
 
-  const addMessage = useCallback((role, content) => {
+  const addMessage = useCallback((role, content, products) => {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const id = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    setMessages((m) => [...m, { id, role, content, time }]);
+    setMessages((m) => [...m, { id, role, content, time, products: products || undefined }]);
   }, []);
 
   const sendMessage = useCallback(
@@ -160,6 +232,7 @@ export default function App() {
       const text = (overrideText != null ? String(overrideText) : chatInput).trim();
       if (!text || isTyping) return;
 
+      stickToBottomRef.current = true;
       setShowWelcome(false);
       addMessage('user', text);
       conversationHistoryRef.current = [...conversationHistoryRef.current, { role: 'user', content: text }];
@@ -184,7 +257,7 @@ export default function App() {
           ];
         }
 
-        const res = await fetch(`${API_BASE}/api/chat`, {
+        const res = await fetch(apiUrl('/api/chat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: messagesPayload, sessionId: sessionIdRef.current }),
@@ -194,7 +267,8 @@ export default function App() {
         const data = await res.json();
 
         setTypingId(null);
-        addMessage('bot', data.reply);
+        stickToBottomRef.current = true;
+        addMessage('bot', data.reply, data.products);
         conversationHistoryRef.current = [
           ...conversationHistoryRef.current,
           { role: 'assistant', content: data.reply },
@@ -250,6 +324,13 @@ export default function App() {
     conversationHistoryRef.current = [];
     setMessages([]);
     setShowWelcome(true);
+    stickToBottomRef.current = true;
+    try {
+      sessionStorage.removeItem(SS_MESSAGES);
+      sessionStorage.setItem(SS_WELCOME, '1');
+    } catch {
+      /* ignore */
+    }
     showToast('Chat cleared', 'success');
   };
 
@@ -275,7 +356,7 @@ export default function App() {
     const leadData = { name, email, phone, interest, message, sessionId: sessionIdRef.current };
 
     try {
-      const res = await fetch(`${API_BASE}/api/lead`, {
+      const res = await fetch(apiUrl('/api/lead'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(leadData),
@@ -286,6 +367,7 @@ export default function App() {
         showToast('✅ Request submitted! Our team will contact you within 24 hours.', 'success');
 
         setShowWelcome(false);
+        stickToBottomRef.current = true;
         addMessage(
           'bot',
           `Thank you, **${name || 'friend'}**! 🎉 We've received your request and our team will reach out to **${email}** within 24 hours. In the meantime, feel free to keep asking me anything about our inventory, financing, or services!`
@@ -325,7 +407,7 @@ export default function App() {
                 <img src="/logo.png" alt="LowCostLasers" style={{ width: '44px', height: '44px', objectFit: 'contain', borderRadius: '10px' }} />
               </div>
               <div className="logo-text">
-                <h2>LOWCOSTLASERS</h2>
+                <h2 className="logo-wordmark">LowCostLasers</h2>
                 <span>AI Sales Assistant</span>
               </div>
             </div>
@@ -452,12 +534,26 @@ export default function App() {
 
         <main className="chat-main">
           <div className="topbar">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="topbar-left">
               <button type="button" className="menu-toggle" onClick={toggleSidebar} aria-label="Menu">
                 ☰
               </button>
+              {!showWelcome && messages.length > 0 && (
+                <button type="button" className="back-btn" onClick={() => setShowWelcome(true)} title="Back to home">
+                  ← Home
+                </button>
+              )}
+              <a
+                className="topbar-brand-link"
+                href="https://lowcostlasers.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="LowCostLasers.com"
+              >
+                <img src="/logo.png" alt="" className="topbar-logo-img" width={40} height={40} />
+              </a>
               <div className="topbar-title">
-                <span>LowCostLasers</span> — your trusted discount program.
+                <span>ARIA</span> — Aesthetic Resource &amp; Investment Assistant
               </div>
             </div>
             <div className="topbar-actions">
@@ -485,44 +581,90 @@ export default function App() {
             </div>
           </div>
 
-          <div className="messages-scroll" id="messages" ref={messagesRef}>
-            {showWelcome && messages.length === 0 && <WelcomeScreen onChip={sendQuick} />}
-            {messages.map((m) => {
-              return (
-                <div key={m.id} className={`msg ${m.role}`}>
-                  <div className="msg-avatar">
-                    {m.role === 'bot' ? (
-                      <img src="/logo.png" alt="ARIA" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px', background: '#0a1628' }} />
-                    ) : '👤'}
-                  </div>
-                  <div className="msg-content">
-                    {m.role === 'bot' ? (
-                      <div
-                        className="msg-bubble"
-                        dangerouslySetInnerHTML={{ __html: formatBotMessage(m.content) }}
-                      />
-                    ) : (
-                      <div className="msg-bubble">{m.content}</div>
-                    )}
-                    <div className="msg-time">{m.time}</div>
-                  </div>
-                </div>
-              );
-            })}
-            {typingId && (
-              <div className="msg bot" id={typingId}>
-                <div className="msg-avatar">
-                  <img src="/logo.png" alt="ARIA" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px', background: '#0a1628' }} />
-                </div>
-                <div className="msg-content">
-                  <div className="typing-indicator">
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                    <div className="typing-dot" />
-                  </div>
-                </div>
+          <div className="chat-body">
+            {showWelcome && (
+              <div className="welcome-overlay">
+                <WelcomeScreen
+                  onChip={sendQuick}
+                  hasHistory={messages.length > 0}
+                  onContinue={() => {
+                    stickToBottomRef.current = true;
+                    setShowWelcome(false);
+                  }}
+                />
               </div>
             )}
+            <div className="messages-scroll" id="messages" ref={messagesRef} onScroll={handleMessagesScroll}>
+              {messages.map((m) => {
+                return (
+                  <div key={m.id} className={`msg ${m.role}`}>
+                    <div className="msg-avatar">
+                      {m.role === 'bot' ? (
+                        <img src="/logo.png" alt="ARIA" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px', background: '#0a1628' }} />
+                      ) : (
+                        '👤'
+                      )}
+                    </div>
+                    <div className="msg-content">
+                      {m.role === 'bot' ? (
+                        <>
+                          <div
+                            className="msg-bubble"
+                            dangerouslySetInnerHTML={{ __html: formatBotMessage(m.content) }}
+                          />
+                          {m.products?.length > 0 && (
+                            <div className="product-showcase-grid" aria-label="Product details">
+                              {m.products.map((p) => (
+                                <a
+                                  key={p.url}
+                                  href={p.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="product-showcase-card"
+                                >
+                                  <div className="product-showcase-img-wrap">
+                                    <img
+                                      src={p.image || '/logo.png'}
+                                      alt=""
+                                      loading="lazy"
+                                      onError={(e) => {
+                                        e.currentTarget.src = '/logo.png';
+                                      }}
+                                    />
+                                  </div>
+                                  <div className="product-showcase-body">
+                                    <div className="product-showcase-title">{p.title}</div>
+                                    {p.summary ? <p className="product-showcase-summary">{p.summary}</p> : null}
+                                    <span className="product-showcase-cta">View product ↗</span>
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="msg-bubble">{m.content}</div>
+                      )}
+                      <div className="msg-time">{m.time}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              {typingId && (
+                <div className="msg bot" id={typingId}>
+                  <div className="msg-avatar">
+                    <img src="/logo.png" alt="ARIA" style={{ width: '36px', height: '36px', objectFit: 'contain', borderRadius: '8px', background: '#0a1628' }} />
+                  </div>
+                  <div className="msg-content">
+                    <div className="typing-indicator">
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
+                      <div className="typing-dot" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="input-area">

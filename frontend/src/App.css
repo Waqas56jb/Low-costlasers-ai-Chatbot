@@ -36,6 +36,7 @@ body {
     color: var(--text-primary);
     font-family: 'DM Sans', sans-serif;
     overflow: hidden;
+    overscroll-behavior: none;
 }
 
 #root {
@@ -61,11 +62,13 @@ body::before {
    APP LAYOUT
    ═══════════════════════════════════════════════════════════ */
 .app {
-    position: relative;
+    position: fixed;
+    inset: 0;
     z-index: 1;
     display: flex;
-    height: 100vh;
-    max-width: 1400px;
+    height: 100%;
+    width: 100%;
+    max-width: 1600px;
     margin: 0 auto;
 }
 
@@ -112,12 +115,18 @@ body::before {
     line-height: 1;
 }
 
-.logo-text h2 {
+.logo-text h2,
+.logo-wordmark {
     font-family: 'Syne', sans-serif;
     font-weight: 800;
-    font-size: 15px;
-    letter-spacing: 0.05em;
+    font-size: 14px;
+    letter-spacing: 0.02em;
     color: var(--accent-cyan);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 168px;
 }
 
 .logo-text span {
@@ -300,10 +309,42 @@ body::before {
     font-family: 'Syne', sans-serif;
     font-weight: 700;
     font-size: 16px;
+    min-width: 0;
 }
 
 .topbar-title span {
     color: var(--accent-cyan);
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.topbar-brand-link {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: var(--bg-card);
+    line-height: 0;
+}
+
+.topbar-brand-link:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 12px #00d4ff22;
+}
+
+.topbar-logo-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    display: block;
 }
 
 .topbar-actions {
@@ -636,6 +677,75 @@ body::before {
     border: none;
     border-top: 1px solid var(--border);
     margin: 10px 0;
+}
+
+/* Product showcase (photo / listing cards) */
+.product-showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    width: 100%;
+    max-width: 100%;
+}
+
+.product-showcase-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.product-showcase-card:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 8px 28px #00d4ff18;
+    transform: translateY(-2px);
+}
+
+.product-showcase-img-wrap {
+    aspect-ratio: 4 / 3;
+    background: #0a1628;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.product-showcase-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.product-showcase-body {
+    padding: 12px 14px 14px;
+}
+
+.product-showcase-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    line-height: 1.35;
+}
+
+.product-showcase-summary {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.product-showcase-cta {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-cyan);
 }
 
 /* Product card inline */
@@ -990,6 +1100,53 @@ body::before {
     }
 }
 
+/* ── BACK / HOME BUTTON ── */
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 212, 255, 0.08);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    border-radius: 8px;
+    padding: 6px 13px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    white-space: nowrap;
+    min-height: 36px;
+    flex-shrink: 0;
+}
+.back-btn:hover {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: var(--accent-cyan);
+}
+
+/* ── CONTINUE CONVERSATION BUTTON ── */
+.continue-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, var(--accent-cyan), #0099bb);
+    border: none;
+    border-radius: 10px;
+    padding: 11px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--bg-deep);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.25s;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px #00d4ff28;
+}
+.continue-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px #00d4ff40;
+}
+
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════════════════════════ */
@@ -1000,6 +1157,8 @@ body::before {
     color: var(--text-secondary);
     font-size: 22px;
     cursor: pointer;
+    min-width: 36px;
+    min-height: 36px;
 }
 
 @media (max-width: 768px) {
@@ -1008,7 +1167,7 @@ body::before {
         left: 0;
         top: 0;
         bottom: 0;
-        z-index: 100;
+        z-index: 200;
         transform: translateX(-100%);
         box-shadow: 4px 0 24px #000a;
     }
@@ -1018,15 +1177,18 @@ body::before {
     }
 
     .menu-toggle {
-        display: block;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
     .app {
-        flex-direction: column;
+        flex-direction: row;
     }
 
     .chat-main {
         width: 100%;
+        min-width: 0;
     }
 
     .msg {
@@ -1036,12 +1198,101 @@ body::before {
     .welcome-screen h1 {
         font-size: 22px;
     }
+
+    .topbar {
+        padding: 12px 16px;
+    }
+
+    .topbar-title {
+        font-size: 13px;
+    }
+
+    .topbar-actions .lang-select {
+        display: none;
+    }
+
+    .messages-scroll {
+        padding: 14px 12px;
+    }
+
+    .input-area {
+        padding: 10px 14px 14px;
+        flex-shrink: 0;
+    }
+
+    #chat-input {
+        font-size: 16px; /* Prevents iOS auto-zoom */
+    }
+
+    .welcome-screen {
+        padding: 24px 16px;
+    }
+
+    .welcome-screen p {
+        font-size: 13px;
+    }
+
+    .chips {
+        gap: 6px;
+    }
+
+    .chip {
+        font-size: 12px;
+        padding: 7px 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .topbar-title {
+        display: none;
+    }
+
+    .back-btn {
+        font-size: 11px;
+        padding: 5px 9px;
+    }
+
+    .msg {
+        max-width: 98%;
+    }
+}
+
+/* Chat body: messages + optional welcome overlay */
+.chat-body {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.welcome-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-deep);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 20px 16px 40px;
+}
+
+.welcome-overlay .welcome-screen {
+    flex: 0 1 auto;
+    width: 100%;
+    max-width: 560px;
 }
 
 /* Scrollbar for messages area */
 .messages-scroll {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
     padding: 24px;
     display: flex;
     flex-direction: column;

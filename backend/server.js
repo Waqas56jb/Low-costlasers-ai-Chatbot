@@ -12,6 +12,11 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 const OpenAI = require('openai');
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const {
+    linkifyProductNamesInMarkdown,
+    pickShowcaseProducts,
+    catalogSummaryForPrompt,
+} = require('./productCatalog');
 
 // Vercel serverless FS is read-only except /tmp — persist JSON there when deployed
 const DATA_DIR = process.env.VERCEL ? '/tmp' : __dirname;
@@ -247,6 +252,22 @@ For complex negotiations, specific pricing deals, financing approval details, or
 "I want to make sure you get the best possible answer on this. Our team is available at 786.357.1224 or info@lowcostlasers.com and can speak with you directly. They're very responsive and can address [specific topic] right away."
 `;
 
+const PRODUCT_LINKING_APPENDIX = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRODUCT DEEP LINKS (required for equipment mentions)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Whenever you mention a specific machine or SKU from inventory, turn its name into a markdown link using the matching URL below (copy the URL exactly).
+
+${catalogSummaryForPrompt()}
+
+Rules:
+1. First mention of each product in a reply should use: [Full product name](exact-url-from-list)
+2. If something is not in the list, link "Browse shop" to https://lowcostlasers.com/shop/
+3. When the user asks for photos, pictures, or to see the machine, answer helpfully and remind them the on-page product card links to the full listing with images on LowCostLasers.com
+`;
+
+const SYSTEM_PROMPT_FULL = SYSTEM_PROMPT + PRODUCT_LINKING_APPENDIX;
+
 // ─── Chat endpoint ───────────────────────────────────────────────────────────
 app.post('/api/chat', async (req, res) => {
     const { messages, sessionId } = req.body;
@@ -264,24 +285,28 @@ app.post('/api/chat', async (req, res) => {
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o',
             messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'system', content: SYSTEM_PROMPT_FULL },
                 ...messages
             ],
             max_tokens: 1000,
             temperature: 0.7,
         });
 
-        const reply = completion.choices[0].message.content;
+        const rawReply = completion.choices[0].message.content;
+        const reply = linkifyProductNamesInMarkdown(rawReply);
+
+        const lastUserContent = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+        const products = pickShowcaseProducts(lastUserContent, reply);
 
         // Log analytics
         logConversation({
             sessionId: sessionId || 'unknown',
-            userMessage: messages[messages.length - 1]?.content || '',
+            userMessage: lastUserContent,
             botReply: reply,
             tokens: completion.usage?.total_tokens || 0
         });
 
-        res.json({ reply, usage: completion.usage });
+        res.json({ reply, products, usage: completion.usage });
     } catch (error) {
         console.error('OpenAI error:', error?.message || error, error?.status, error?.code);
         const status = error?.status === 401 || error?.status === 403 ? 503 : 500;

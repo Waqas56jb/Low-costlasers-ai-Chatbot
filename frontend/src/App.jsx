@@ -263,8 +263,11 @@ export default function App() {
           body: JSON.stringify({ messages: messagesPayload, sessionId: sessionIdRef.current }),
         });
 
-        if (!res.ok) throw new Error(`API error ${res.status}`);
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const detail = data.error || `Request failed (${res.status})`;
+          throw new Error(detail);
+        }
 
         setTypingId(null);
         stickToBottomRef.current = true;
@@ -291,10 +294,11 @@ export default function App() {
         }
       } catch (err) {
         setTypingId(null);
-        addMessage(
-          'bot',
-          '⚠️ Sorry, I encountered a connection issue. Please try again or call us directly at **786.357.1224**.'
-        );
+        const hint =
+          err?.message && !String(err.message).startsWith('API error')
+            ? `⚠️ ${err.message}`
+            : '⚠️ Sorry, I encountered a connection issue. Please try again or call us directly at **786.357.1224**.';
+        addMessage('bot', hint);
         console.error('Chat error:', err);
       }
 

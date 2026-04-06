@@ -8,10 +8,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the frontend directory
-app.use(express.static(path.join(__dirname, '../frontend')));
+// Serve static files locally only — on Vercel, the SPA is served from frontend/dist via CDN
+if (!process.env.VERCEL) {
+    app.use(express.static(path.join(__dirname, '../frontend')));
+}
 const OpenAI = require('openai');
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let cachedOpenAI = null;
+/** Lazy init so missing OPENAI_API_KEY does not crash the process (Vercel cold start / health checks). */
+function getOpenAI() {
+    const key = process.env.OPENAI_API_KEY && String(process.env.OPENAI_API_KEY).trim();
+    if (!key) return null;
+    if (!cachedOpenAI) cachedOpenAI = new OpenAI({ apiKey: key });
+    return cachedOpenAI;
+}
 const {
     linkifyProductNamesInMarkdown,
     pickShowcaseProducts,
@@ -276,7 +285,8 @@ app.post('/api/chat', async (req, res) => {
         return res.status(400).json({ error: 'Messages array is required' });
     }
 
-    if (!process.env.OPENAI_API_KEY || !String(process.env.OPENAI_API_KEY).trim()) {
+    const openai = getOpenAI();
+    if (!openai) {
         console.error('OPENAI_API_KEY is missing — set it in Vercel Project → Settings → Environment Variables');
         return res.status(503).json({ error: 'Chat service is not configured.' });
     }

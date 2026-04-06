@@ -8,8 +8,9 @@
    - `OPENAI_API_KEY` — required. Without it, `/api/chat` returns `503` with `Chat service is not configured.`
 
 3. **Frontend API URL**
-   - Same deployment: leave `VITE_API_BASE_URL` unset (or empty). The app calls `/api/chat` on the same origin.
-   - Separate frontend project: set `VITE_API_BASE_URL` at build time to your API origin (no trailing slash), e.g. `https://your-api.vercel.app`.
+   - Production builds default to **`https://low-costlasers-ai-chatbot.vercel.app`** (see `frontend/src/App.jsx`) so chat hits the live API even when `VITE_API_BASE_URL` is not set (e.g. [health check](https://low-costlasers-ai-chatbot.vercel.app/api/health)).
+   - **Override:** set `VITE_API_BASE_URL` in Vercel (no trailing slash) if the API lives on another host or you use a custom domain.
+   - **Same-origin only:** set `VITE_API_BASE_URL` to empty in Vercel so the app uses relative `/api/*` on whatever domain serves the UI.
 
 4. **Files used by Vercel**
    - `vercel.json` — build output, rewrites, API function duration

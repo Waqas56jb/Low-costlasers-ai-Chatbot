@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+/** Deployed backend (Vercel). Override with VITE_API_BASE_URL when using a different API host. */
+const PRODUCTION_API_ORIGIN = 'https://low-costlasers-ai-chatbot.vercel.app';
+
+const rawApiBase =
+  import.meta.env.VITE_API_BASE_URL?.trim() ||
+  (import.meta.env.PROD ? PRODUCTION_API_ORIGIN : '');
+
+const API_BASE = rawApiBase.replace(/\/$/, '');
 const apiUrl = (path) => `${API_BASE}${path}`;
 
 const SS_MESSAGES = 'lcl_v1_messages';

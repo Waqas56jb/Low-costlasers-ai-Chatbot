@@ -8,10 +8,11 @@
    - `OPENAI_API_KEY` — required. Without it, `/api/chat` returns `503` with `Chat service is not configured.`
 
 3. **Frontend API URL**
-   - **Dev + production** default to **`https://low-costlasers-ai-chatbot.vercel.app`** when `VITE_API_BASE_URL` is unset, so `npm run dev` works without a local backend (same behavior as Postman). See [health](https://low-costlasers-ai-chatbot.vercel.app/api/health).
-   - **Local backend:** create `frontend/.env.local` with `VITE_API_BASE_URL=http://localhost:3000` and run `cd backend && npm start`.
-   - **Override on Vercel:** set `VITE_API_BASE_URL` (no trailing slash) if the API is on another host or custom domain.
-   - **Same-origin relative `/api`:** set `VITE_API_BASE_URL` to your site origin or leave unset on a monorepo deploy where API and UI share one URL (adjust `App.jsx` if you need empty string for relative paths only).
+   - **Vercel Production** (`VERCEL_ENV=production`): leave `VITE_API_BASE_URL` unset → same-origin **`/api/*`** (efficient).
+   - **Vercel Preview** (PR/branch URLs like `*-6ss9.vercel.app`): the build sets `VITE_VERCEL_ENV=preview` → the app calls **`https://low-costlasers-ai-chatbot.vercel.app`** automatically so chat works even when preview returns **404** on `/api` (serverless not wired on that URL).
+   - **Local `npm run dev`:** defaults to that same production API when unset. [Health check](https://low-costlasers-ai-chatbot.vercel.app/api/health).
+   - **Local backend:** `frontend/.env.local` → `VITE_API_BASE_URL=http://localhost:3000` and `cd backend && npm start`.
+   - **Override:** set `VITE_API_BASE_URL` on Vercel for any environment if the API lives elsewhere.
 
 4. **Files used by Vercel**
    - `vercel.json` — build output, rewrites, API function duration
@@ -21,6 +22,12 @@
 5. **Smoke test after deploy**
    - `GET https://YOUR_DEPLOYMENT.vercel.app/api/health` → JSON `status: online`
    - Send a message in the UI; if it fails, check Vercel **Functions** logs for errors.
+
+### Build fails on install (e.g. exit code 254)
+
+- **Root Directory** in Vercel → Settings → General must be the **repository root** (the folder that contains `package.json`, `vercel.json`, `frontend/`, `api/`, and `backend/`). If Root Directory is set to `frontend` only, installs and API routes will break.
+- In Vercel → Settings → **Build & Development**, clear any custom **Install Command** left over from older configs. The repo uses root `npm install`, which runs **`postinstall`** → `cd frontend && npm install`.
+- Commit **`package-lock.json`** at the repo root and in `frontend/` so installs are reproducible.
 
 ## Local development
 

@@ -1,11 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/** Deployed backend (Vercel). Used whenever VITE_API_BASE_URL is not set. */
-const PRODUCTION_API_ORIGIN = 'https://low-costlasers-ai-chatbot.vercel.app';
+/** Stable production host — used for local `npm run dev` only (see API_BASE below). */
+const PRODUCTION_CANONICAL_ORIGIN = 'https://low-costlasers-ai-chatbot.vercel.app';
 
-// Dev used to default to '' → requests hit localhost:5173/api → Vite proxy → :3000 (often 500 if backend
-// isn’t running or misconfigured). Defaulting dev to the live API matches Postman and “just works”.
-const rawApiBase = import.meta.env.VITE_API_BASE_URL?.trim() || PRODUCTION_API_ORIGIN;
+const envApi = import.meta.env.VITE_API_BASE_URL?.trim();
+const vercelEnv = import.meta.env.VITE_VERCEL_ENV || '';
+
+let rawApiBase;
+if (envApi) {
+  rawApiBase = envApi;
+} else if (import.meta.env.PROD && vercelEnv === 'preview') {
+  // Branch / PR previews often 404 on `/api/*` while production deployment has serverless routes.
+  // Call the stable production API so chat works on *.vercel.app preview URLs.
+  rawApiBase = PRODUCTION_CANONICAL_ORIGIN;
+} else if (import.meta.env.PROD) {
+  // Production deploy on Vercel (or static host with API on same origin)
+  rawApiBase = '';
+} else {
+  // Local `npm run dev` — no same-origin API unless .env.local points to localhost:3000
+  rawApiBase = PRODUCTION_CANONICAL_ORIGIN;
+}
 
 const API_BASE = rawApiBase.replace(/\/$/, '');
 const apiUrl = (path) => `${API_BASE}${path}`;

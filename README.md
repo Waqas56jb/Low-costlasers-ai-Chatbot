@@ -15,9 +15,9 @@
    - **Override:** set `VITE_API_BASE_URL` on Vercel for any environment if the API lives elsewhere.
 
 4. **Files used by Vercel**
-   - `vercel.json` — build output, rewrites, API function duration
+   - `vercel.json` — `installCommand` (root + `frontend` deps), `buildCommand` (`vite build` in `frontend/`), `outputDirectory` → `frontend/dist`, rewrites (API + static files + SPA)
    - `api/index.js` — loads `backend/server.js` for all `/api/*` routes
-   - Root `package.json` — installs Express/OpenAI deps so the serverless function can run
+   - Root `package.json` — API dependencies (Express, OpenAI); `frontend/package.json` — Vite + React
 
 5. **Smoke test after deploy**
    - `GET https://YOUR_DEPLOYMENT.vercel.app/api/health` → JSON `status: online`
@@ -26,7 +26,7 @@
 ### Build fails on install (e.g. exit code 254)
 
 - **Root Directory** in Vercel → Settings → General must be the **repository root** (the folder that contains `package.json`, `vercel.json`, `frontend/`, `api/`, and `backend/`). If Root Directory is set to `frontend` only, installs and API routes will break.
-- In Vercel → Settings → **Build & Development**, clear any custom **Install Command** left over from older configs. The repo uses root `npm install`, which runs **`postinstall`** → `cd frontend && npm install`.
+- In Vercel → Settings → **Build & Development**, clear **Install Command** / **Build Command** / **Output Directory** dashboard overrides so **`vercel.json`** is used (`install` → root + frontend, `build` → `frontend` Vite build, output → `frontend/dist`).
 - Commit **`package-lock.json`** at the repo root and in `frontend/` so installs are reproducible.
 
 ## Local development

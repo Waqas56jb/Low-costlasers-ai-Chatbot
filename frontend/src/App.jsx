@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/** Deployed backend (Vercel). Override with VITE_API_BASE_URL when using a different API host. */
+/** Deployed backend (Vercel). Used whenever VITE_API_BASE_URL is not set. */
 const PRODUCTION_API_ORIGIN = 'https://low-costlasers-ai-chatbot.vercel.app';
 
-const rawApiBase =
-  import.meta.env.VITE_API_BASE_URL?.trim() ||
-  (import.meta.env.PROD ? PRODUCTION_API_ORIGIN : '');
+// Dev used to default to '' → requests hit localhost:5173/api → Vite proxy → :3000 (often 500 if backend
+// isn’t running or misconfigured). Defaulting dev to the live API matches Postman and “just works”.
+const rawApiBase = import.meta.env.VITE_API_BASE_URL?.trim() || PRODUCTION_API_ORIGIN;
 
 const API_BASE = rawApiBase.replace(/\/$/, '');
 const apiUrl = (path) => `${API_BASE}${path}`;

@@ -8,9 +8,10 @@
    - `OPENAI_API_KEY` — required. Without it, `/api/chat` returns `503` with `Chat service is not configured.`
 
 3. **Frontend API URL**
-   - Production builds default to **`https://low-costlasers-ai-chatbot.vercel.app`** (see `frontend/src/App.jsx`) so chat hits the live API even when `VITE_API_BASE_URL` is not set (e.g. [health check](https://low-costlasers-ai-chatbot.vercel.app/api/health)).
-   - **Override:** set `VITE_API_BASE_URL` in Vercel (no trailing slash) if the API lives on another host or you use a custom domain.
-   - **Same-origin only:** set `VITE_API_BASE_URL` to empty in Vercel so the app uses relative `/api/*` on whatever domain serves the UI.
+   - **Dev + production** default to **`https://low-costlasers-ai-chatbot.vercel.app`** when `VITE_API_BASE_URL` is unset, so `npm run dev` works without a local backend (same behavior as Postman). See [health](https://low-costlasers-ai-chatbot.vercel.app/api/health).
+   - **Local backend:** create `frontend/.env.local` with `VITE_API_BASE_URL=http://localhost:3000` and run `cd backend && npm start`.
+   - **Override on Vercel:** set `VITE_API_BASE_URL` (no trailing slash) if the API is on another host or custom domain.
+   - **Same-origin relative `/api`:** set `VITE_API_BASE_URL` to your site origin or leave unset on a monorepo deploy where API and UI share one URL (adjust `App.jsx` if you need empty string for relative paths only).
 
 4. **Files used by Vercel**
    - `vercel.json` — build output, rewrites, API function duration
@@ -23,5 +24,5 @@
 
 ## Local development
 
-- Terminal 1: `cd backend && npm install && npm start` (default port 3000)
-- Terminal 2: `cd frontend && npm install && npm run dev` (Vite proxies `/api` to localhost:3000)
+- **Frontend only (uses live Vercel API):** `cd frontend && npm install && npm run dev`
+- **Full stack local:** Terminal 1: `cd backend && npm install && npm start` · create `frontend/.env.local` with `VITE_API_BASE_URL=http://localhost:3000`, then Terminal 2: `cd frontend && npm install && npm run dev`

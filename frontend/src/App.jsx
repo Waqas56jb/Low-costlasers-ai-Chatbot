@@ -565,7 +565,8 @@ export default function App() {
               </button>
               {!showWelcome && messages.length > 0 && (
                 <button type="button" className="back-btn" onClick={() => setShowWelcome(true)} title="Back to home">
-                  ← Home
+                  <span className="back-btn-arrow">←</span>
+                  <span className="back-btn-label">Home</span>
                 </button>
               )}
               <a

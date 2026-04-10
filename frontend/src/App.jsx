@@ -17,8 +17,8 @@ if (envApi) {
   // Production deploy on Vercel (or static host with API on same origin)
   rawApiBase = '';
 } else {
-  // Local `npm run dev` — no same-origin API unless .env.local points to localhost:3000
-  rawApiBase = PRODUCTION_CANONICAL_ORIGIN;
+  // Local `npm run dev` — use Vite proxy `/api` → localhost:3000; set VITE_API_BASE_URL to override
+  rawApiBase = '';
 }
 
 const API_BASE = rawApiBase.replace(/\/$/, '');
@@ -89,6 +89,21 @@ function formatBotMessage(text) {
       /\[(.*?)\]\((.*?)\)/g,
       '<a href="$2" target="_blank" rel="noopener noreferrer">$1 ↗</a>'
     );
+}
+
+function getOfflineFallbackReply(userText) {
+  const t = String(userText || '').toLowerCase();
+  if (/financ/i.test(t))
+    return 'LowCostLasers offers equipment financing options — our team can walk you through terms for your clinic. **786.357.1224** · **info@lowcostlasers.com** · [lowcostlasers.com](https://lowcostlasers.com)';
+  if (/ship|freight|crate/i.test(t))
+    return 'We provide professional palletized freight and custom crating. Ask for a shipping quote for your machine — **786.357.1224** · **info@lowcostlasers.com**.';
+  if (/repair|service|fix/i.test(t))
+    return 'We service aesthetic laser equipment. Describe your system and we will connect you with repair — **786.357.1224**.';
+  if (/sell|consign/i.test(t))
+    return 'We buy and consign pre-owned aesthetic equipment. Email **FLORIDAVENDOR06@GMAIL.COM** or call **786.357.1224** with photos and details.';
+  if (/price|cost|inventory|stock|buy|laser|machine/i.test(t))
+    return 'Browse current listings at [lowcostlasers.com/shop](https://lowcostlasers.com/shop/). For a specific quote, call **786.357.1224** or use **Get Quote** in this chat.';
+  return 'I could not reach the AI server just now. For immediate help: **786.357.1224** | **info@lowcostlasers.com** | [lowcostlasers.com](https://lowcostlasers.com)';
 }
 
 function WelcomeScreen({ onChip, hasHistory, onContinue }) {
@@ -315,10 +330,13 @@ export default function App() {
         }
       } catch (err) {
         setTypingId(null);
-        const hint =
-          err?.message && !String(err.message).startsWith('API error')
-            ? `⚠️ ${err.message}`
-            : '⚠️ Sorry, I encountered a connection issue. Please try again or call us directly at **786.357.1224**.';
+        const em = err?.message ? String(err.message) : '';
+        const useFallback =
+          /connection|failed to fetch|network|503|502|500|not configured|load failed/i.test(em) ||
+          !em;
+        const hint = useFallback
+          ? getOfflineFallbackReply(text)
+          : `⚠️ ${em || 'Request failed'}. Try again or call **786.357.1224**.`;
         addMessage('bot', hint);
         console.error('Chat error:', err);
       }
@@ -563,8 +581,14 @@ export default function App() {
               <button type="button" className="menu-toggle" onClick={toggleSidebar} aria-label="Menu">
                 ☰
               </button>
+              {showWelcome && messages.length > 0 && (
+                <button type="button" className="back-btn" onClick={() => setShowWelcome(false)} title="Back to conversation">
+                  <span className="back-btn-arrow">←</span>
+                  <span className="back-btn-label">Back</span>
+                </button>
+              )}
               {!showWelcome && messages.length > 0 && (
-                <button type="button" className="back-btn" onClick={() => setShowWelcome(true)} title="Back to home">
+                <button type="button" className="back-btn back-btn--home" onClick={() => setShowWelcome(true)} title="Home">
                   <span className="back-btn-arrow">←</span>
                   <span className="back-btn-label">Home</span>
                 </button>

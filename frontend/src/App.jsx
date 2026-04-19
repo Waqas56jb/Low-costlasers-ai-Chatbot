@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { VoiceAgent } from './VoiceAgent';
 
 /** Stable production host — used for local `npm run dev` only (see API_BASE below). */
 const PRODUCTION_CANONICAL_ORIGIN = 'https://low-costlasers-ai-chatbot.vercel.app';
@@ -170,6 +171,13 @@ export default function App() {
   const [leadInterest, setLeadInterest] = useState('');
   const [leadMessage, setLeadMessage] = useState('');
   const [toasts, setToasts] = useState([]);
+  const [voiceActive, setVoiceActive] = useState(false);
+
+  useEffect(() => {
+    if (voiceActive) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+    return () => { document.body.style.overflow = ''; };
+  }, [voiceActive]);
 
   const messagesRef = useRef(null);
   const inputRef = useRef(null);
@@ -730,7 +738,33 @@ export default function App() {
                 onKeyDown={handleKey}
                 onInput={autoResize}
               />
+              {voiceActive && (
+                <VoiceAgent onClose={(transcript) => {
+                  setVoiceActive(false);
+                  if (transcript && transcript.length > 0) {
+                    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const sep = { id: `vs_${Date.now()}`, role: 'bot', content: '🎙️ Voice conversation', time, isVoiceSep: true };
+                    const msgs = transcript.map((m, i) => ({ id: `v_${Date.now()}_${i}`, role: m.role === 'assistant' ? 'bot' : 'user', content: m.text, time, fromVoice: true }));
+                    setMessages(prev => [...prev, sep, ...msgs]);
+                    setShowWelcome(false);
+                  }
+                }} />
+              )}
               <div className="input-actions">
+                <button
+                  type="button"
+                  className={`voice-btn${voiceActive ? ' voice-btn--active' : ''}`}
+                  onClick={() => setVoiceActive(true)}
+                  title="Start voice input"
+                  aria-label="Start voice input"
+                >
+                  <svg className="voice-btn__icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor"/>
+                    <path d="M5 11a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="9" y1="22" x2="15" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </button>
                 <button
                   type="button"
                   className="send-btn"

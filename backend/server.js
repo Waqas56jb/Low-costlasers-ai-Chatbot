@@ -378,6 +378,46 @@ app.get('/api/analytics', (req, res) => {
     }
 });
 
+// ─── Realtime Voice Agent — Ephemeral Token ──────────────────────────────────
+app.post('/api/realtime-token', async (req, res) => {
+    try {
+        const response = await fetch('https://api.openai.com/v1/realtime/sessions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'gpt-4o-realtime-preview-2024-12-17',
+                voice: 'coral',
+                instructions: `You are ARIA — the AI sales consultant for LowCostLasers.com, a premier marketplace for pre-owned medical and aesthetic laser equipment based in Miami Lakes, Florida.
+
+BEGIN IMMEDIATELY — greet the user the moment you connect:
+Say: "Hi! I'm ARIA, your LowCostLasers consultant. How can I help you today — are you looking to buy, sell, or need a repair?"
+Then listen. Do not speak again until the user responds.
+
+SPEAK NATURALLY for voice — keep responses concise, warm, and conversational.
+
+KEY FACTS:
+- Website: lowcostlasers.com | Phone: 786.357.1224 | Email: info@lowcostlasers.com
+- Address: 5901 NW 151st St, Miami Lakes, FL 33016
+- Specializes in pre-owned aesthetic/medical lasers at 40–70% below new prices
+- Services: Buy/sell equipment, financing, repair, freight/crating, consignment (10–15% commission)
+- 25+ years experience, 2,560+ satisfied clients
+- For equipment submissions: FLORIDAVENDOR06@GMAIL.COM
+- Responds in any language — detect and match user's language`,
+                modalities: ['audio', 'text'],
+                input_audio_transcription: { model: 'whisper-1' },
+                turn_detection: { type: 'server_vad', threshold: 0.5, prefix_padding_ms: 300, silence_duration_ms: 600, create_response: true }
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) return res.status(500).json({ error: 'Failed to create realtime session', details: data });
+        console.log('🎙️  Voice session created — expires:', data.client_secret?.expires_at);
+        res.json({ token: data.client_secret.value, expires: data.client_secret.expires_at });
+    } catch (err) {
+        console.error('Realtime token endpoint error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
     res.json({

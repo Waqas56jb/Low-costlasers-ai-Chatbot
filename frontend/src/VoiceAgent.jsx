@@ -5,8 +5,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
-/* Empty fallback → Vite proxy routes /api/* to localhost:3000 in dev */
-const API_BASE = (import.meta.env.VITE_API_BASE_URL?.trim() || '').replace(/\/$/, '');
+const API_BASE = (() => {
+  const env = import.meta.env.VITE_API_BASE_URL?.trim();
+  if (env) return env.replace(/\/$/, '');
+  if (import.meta.env.PROD && (import.meta.env.VITE_VERCEL_ENV || '') === 'preview')
+    return 'https://low-costlasers-ai-chatbot.vercel.app';
+  return import.meta.env.PROD ? '' : 'https://low-costlasers-ai-chatbot.vercel.app';
+})();
 const REALTIME_MODEL = 'gpt-4o-realtime-preview-2024-12-17';
 
 function micErrorMsg(err) {

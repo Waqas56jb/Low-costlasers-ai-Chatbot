@@ -791,7 +791,7 @@ body::before {
    INPUT AREA
    ═══════════════════════════════════════════════════════════ */
 .input-area {
-    padding: 16px 24px 20px;
+    padding: 16px 24px max(20px, env(safe-area-inset-bottom, 20px));
     background: var(--bg-panel);
     border-top: 1px solid var(--border);
     flex-shrink: 0;
@@ -824,7 +824,8 @@ body::before {
     resize: none;
     max-height: 120px;
     line-height: 1.5;
-    min-height: 22px;
+    min-height: 40px;
+    touch-action: manipulation;
 }
 
 #chat-input::placeholder {
@@ -1204,12 +1205,13 @@ body::before {
    ═══════════════════════════════════════════════════════════ */
 .toast-container {
     position: fixed;
-    bottom: 24px;
-    right: 24px;
+    bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    right: max(24px, env(safe-area-inset-right, 24px));
     z-index: 2000;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    max-width: min(320px, calc(100vw - 32px));
 }
 
 .toast {
@@ -1390,12 +1392,18 @@ body::before {
     }
 
     .input-area {
-        padding: 10px 14px 14px;
+        padding: 10px 14px max(14px, env(safe-area-inset-bottom, 14px));
         flex-shrink: 0;
     }
 
     #chat-input {
         font-size: 16px; /* Prevents iOS auto-zoom */
+        min-height: 40px;
+    }
+
+    /* iOS zoom prevention in modals */
+    .modal input, .modal textarea, .modal select {
+        font-size: 16px !important;
     }
 
     .welcome-screen {
@@ -1602,4 +1610,31 @@ body::before {
   font-size: 11px; background: rgba(14,165,233,0.1); color: #0369a1;
   border: 1px solid rgba(14,165,233,0.3); border-radius: 999px;
   padding: 4px 14px; font-weight: 500;
+}
+/* ── Touch / tap: remove 300ms delay ───────────────────────── */
+button, [role="button"], a, .topbar-btn, .send-btn, .voice-btn,
+.chip, .back-btn, .attach-btn, .menu-toggle { touch-action: manipulation; }
+
+/* ── Very small phones (360px) ─────────────────────────────── */
+@media (max-width: 360px) {
+    .topbar { padding: 0 8px; gap: 6px; }
+    .topbar-actions { gap: 4px; }
+    .topbar-btn { width: 30px; height: 30px; font-size: 13px; }
+    .input-area { padding: 8px 8px max(8px, env(safe-area-inset-bottom)); }
+    .input-bar { padding: 8px 10px; gap: 6px; }
+    #chat-input { font-size: 16px !important; min-height: 38px; }
+    .send-btn { width: 36px; height: 36px; }
+    .messages-scroll { padding: 10px 8px; gap: 12px; }
+    .msg { font-size: 13px; }
+    .toast-container { right: 8px; left: 8px; max-width: unset; }
+}
+
+/* ── Landscape compact ─────────────────────────────────────── */
+@media (max-height: 480px) and (orientation: landscape) {
+    .topbar { min-height: 44px; padding: 0 10px; }
+    .topbar-title { display: none; }
+    .messages-scroll { padding-top: 6px; padding-bottom: 6px; gap: 10px; }
+    .input-area { padding-top: 6px; padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+    #chat-input { min-height: 34px; max-height: 80px; }
+    .welcome-screen { padding: 12px 16px; }
 }

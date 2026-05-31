@@ -5,7 +5,9 @@
 1. **Project root** in Vercel must be this folder (`Low-costlasers-ai-Chatbot`), **not** `frontend` only. If the root is set to `frontend`, `/api/*` will never hit the backend and the bot will not reply.
 
 2. **Environment variables** (Vercel → Project → Settings → Environment Variables):
-   - `OPENAI_API_KEY` — required. Without it, `/api/chat` returns `503` with `Chat service is not configured.`
+   - `OPENAI_API_KEY` — required. Without it, `/api/chat` returns `503` with `Chat service
+   
+    is not configured.`
 
 3. **Frontend API URL**
    - **Vercel Production** (`VERCEL_ENV=production`): leave `VITE_API_BASE_URL` unset → same-origin **`/api/*`** (efficient).

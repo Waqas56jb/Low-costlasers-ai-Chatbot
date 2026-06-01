@@ -133,3 +133,5 @@ Thumbs.db
 # Project Specific Local Data
 backend/leads.json
 backend/analytics.json
+
+.vercel
